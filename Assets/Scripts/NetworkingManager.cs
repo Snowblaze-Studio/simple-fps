@@ -48,15 +48,18 @@ public class NetworkingManager : MonoBehaviour
     {
         actionQueue.Enqueue(() =>
         {
-            SendMessage("InstantiatePlayer", response);
+            if (response.GetValue<string>(0) == "player")
+            {
+                SendMessage("InstantiatePlayer", response);
+            }
         });
     }
 
     public void InstantiatePlayer(SocketIOResponse response)
     {
         Debug.Log(response);
-        GameObject playerGO = Instantiate(playerPrefab, response.GetValue<Vector3>(1), response.GetValue<Quaternion>(2));
-        playerGO.GetComponent<CannonId>().id = response.GetValue<int>(0);
+        GameObject playerGO = Instantiate(playerPrefab, response.GetValue<Vector3>(2), response.GetValue<Quaternion>(3));
+        playerGO.GetComponent<CannonId>().id = response.GetValue<int>(1);
     }
 
     private void OnUpdate(SocketIOResponse response)

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SocketIOClient.JsonSerializer;
 
 public class UserInput : MonoBehaviour
 {
@@ -10,20 +11,33 @@ public class UserInput : MonoBehaviour
     [SerializeField]
     private NetworkingManager networkManager;
 
+    private PlayerInputData inputData;
+    private SystemTextJsonSerializer serializer;
+
+    private void Awake()
+    {
+        inputData = new PlayerInputData();
+        serializer = new SystemTextJsonSerializer();
+    }
+
     public void InputMove(InputAction.CallbackContext context)
     {
         Dictionary<string, float[]> data = new Dictionary<string, float[]>();
         Vector2 value = context.ReadValue<Vector2>();
         data.Add(context.action.name.ToLower(), new float[] { value.x, value.y });
-        networkManager.Emit("input", data);
+        SendInput();
+
+        //networkManager.Emit("input", data);
     }
 
     public void InputLook(InputAction.CallbackContext context)
     {
-        Dictionary<string, float[]> data = new Dictionary<string, float[]>();
-        Vector2 value = context.ReadValue<Vector2>();
-        data.Add(context.action.name.ToLower(), new float[] { value.x, value.y });
-        networkManager.Emit("input", data);
+        //Dictionary<string, float[]> data = new Dictionary<string, float[]>();
+        //Vector2 value = context.ReadValue<Vector2>();
+        //data.Add(context.action.name.ToLower(), new float[] { value.x, value.y });
+        //SendInput();
+
+        ////networkManager.Emit("input", data);
     }
 
     public void InputFire(InputAction.CallbackContext context)
@@ -41,6 +55,14 @@ public class UserInput : MonoBehaviour
 
         Dictionary<string, bool> data = new Dictionary<string, bool>();
         data.Add(context.action.name.ToLower(), context.ReadValueAsButton());
-        networkManager.Emit("input", data);
+        SendInput();
+
+        //networkManager.Emit("input", data);
+    }
+
+    public void SendInput()
+    {
+        Debug.Log(serializer.Serialize(new object[] { "sdasd", 12312, "asdo" }));
+        //networkManager.Emit("input", serializer.Serialize(inputData));
     }
 }
