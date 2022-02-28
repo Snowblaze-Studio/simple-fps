@@ -11,58 +11,45 @@ public class UserInput : MonoBehaviour
     [SerializeField]
     private NetworkingManager networkManager;
 
-    private PlayerInputData inputData;
-    private SystemTextJsonSerializer serializer;
+    private PlayerInputData inputData; 
 
     private void Awake()
     {
         inputData = new PlayerInputData();
-        serializer = new SystemTextJsonSerializer();
     }
 
     public void InputMove(InputAction.CallbackContext context)
     {
-        Dictionary<string, float[]> data = new Dictionary<string, float[]>();
         Vector2 value = context.ReadValue<Vector2>();
-        data.Add(context.action.name.ToLower(), new float[] { value.x, value.y });
+        inputData.move = new Move(value.x, value.y);
         SendInput();
-
-        //networkManager.Emit("input", data);
     }
 
     public void InputLook(InputAction.CallbackContext context)
     {
-        //Dictionary<string, float[]> data = new Dictionary<string, float[]>();
-        //Vector2 value = context.ReadValue<Vector2>();
-        //data.Add(context.action.name.ToLower(), new float[] { value.x, value.y });
-        //SendInput();
-
-        ////networkManager.Emit("input", data);
+        Vector2 value = context.ReadValue<Vector2>();
+        inputData.look = new Look(value.x, value.y);
+        SendInput();
     }
 
     public void InputFire(InputAction.CallbackContext context)
     {
-        //if (context.phase == InputActionPhase.Started) return;
+        if (context.phase == InputActionPhase.Started) return;
 
-        //Dictionary<string, bool> data = new Dictionary<string, bool>();
-        //data.Add(context.action.name.ToLower(), context.ReadValueAsButton());
-        //networkManager.Emit("input", data);
+        inputData.fire = context.ReadValueAsButton();
+        SendInput();
     }
 
     public void InputJump(InputAction.CallbackContext context)
     {
         if (context.phase != InputActionPhase.Performed && context.phase != InputActionPhase.Canceled) return;
 
-        Dictionary<string, bool> data = new Dictionary<string, bool>();
-        data.Add(context.action.name.ToLower(), context.ReadValueAsButton());
+        inputData.jump = context.ReadValueAsButton();
         SendInput();
-
-        //networkManager.Emit("input", data);
     }
 
     public void SendInput()
     {
-        Debug.Log(serializer.Serialize(new object[] { "sdasd", 12312, "asdo" }));
-        //networkManager.Emit("input", serializer.Serialize(inputData));
+        networkManager.Emit("input", inputData);
     }
 }

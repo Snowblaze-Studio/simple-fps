@@ -6,14 +6,26 @@ using System.Threading.Tasks;
 
 public struct Move
 {
-    readonly int x;
-    readonly int y;
+    public readonly float x;
+    public readonly float y;
+
+    public Move(float x, float y)
+    {
+        this.x = x;
+        this.y = y;
+    }
 }
 
 public struct Look
 {
-    readonly int x;
-    readonly int y;
+    public readonly float x;
+    public readonly float y;
+
+    public Look(float x, float y)
+    {
+        this.x = x;
+        this.y = y;
+    }
 }
 
 class PlayerInputData

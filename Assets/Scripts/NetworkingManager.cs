@@ -11,6 +11,8 @@ public class NetworkingManager : MonoBehaviour
 
     [SerializeField]
     private GameObject playerPrefab;
+    [SerializeField]
+    private Transform cubePrefab;
 
     private Queue<Action> actionQueue = new Queue<Action>();
 
@@ -18,6 +20,7 @@ public class NetworkingManager : MonoBehaviour
     {
         uri = new Uri("http://localhost:3000/");
         client = new SocketIO(uri);
+
         client.OnConnected += async (sender, e) =>
         {
             // Emit a string
@@ -37,6 +40,7 @@ public class NetworkingManager : MonoBehaviour
     {
         client.On("instantiate", OnInstantiate);
         client.On("update", OnUpdate);
+        client.On("addStatic", OnAddStaticObject);
 
         await client.ConnectAsync();
         Debug.Log("SocketIO::Connected");
@@ -81,6 +85,34 @@ public class NetworkingManager : MonoBehaviour
         playerTransform.rotation = response.GetValue<Quaternion>(2);
     }
 
+    private void OnAddStaticObject(SocketIOResponse response)
+    {
+        actionQueue.Enqueue(() =>
+        {
+            SendMessage("AddStaticObject", response);
+        });
+    }
+
+    public void AddStaticObject(SocketIOResponse response)
+    {
+        //gameObject.shape, (0)
+        //gameObject.id, (1)
+        //gameObject.position, (2)
+        //gameObject.quaternion, (3)
+        //gameObject.scale, (4)
+
+        Debug.Log(response);
+
+        Vector3 position = response.GetValue<Vector3>(2);
+        Quaternion rotation = response.GetValue<Quaternion>(3);
+        Vector3 scale = response.GetValue<Vector3>(4);
+
+        Transform cubeObject = Instantiate(cubePrefab);
+        cubeObject.position = position;
+        cubeObject.rotation = rotation;
+        cubeObject.localScale = scale;
+    }
+
     private void OnAnyHandler(string eventName, SocketIOResponse response)
     {
         Debug.Log(eventName);
@@ -90,6 +122,7 @@ public class NetworkingManager : MonoBehaviour
     {
         client.Off("instantiate");
         client.Off("update");
+        client.Off("addStatic");
 
         await client.DisconnectAsync();
         client.Dispose();
