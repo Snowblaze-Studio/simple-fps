@@ -2545,6 +2545,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 2207432597323634459, guid: 17256e5f976046342ab5ae13ff0fa78c, type: 3}
+  enemyPrefab: {fileID: 38316745370618037, guid: 91dc8cff0cf9455479fcf23a214a5cf3, type: 3}
+  cubePrefab: {fileID: 6132344591971772794, guid: 75fe904428b49fe4f9835a6f3cc00d23, type: 3}
 --- !u!4 &1585469266
 Transform:
   m_ObjectHideFlags: 0

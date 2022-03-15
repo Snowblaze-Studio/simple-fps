@@ -12,9 +12,13 @@ public class NetworkingManager : MonoBehaviour
     [SerializeField]
     private GameObject playerPrefab;
     [SerializeField]
+    private GameObject enemyPrefab;
+    [SerializeField]
     private Transform cubePrefab;
 
     private Queue<Action> actionQueue = new Queue<Action>();
+
+    private Dictionary<int, GameObject> dynamicObjectsDictionary = new Dictionary<int, GameObject>();
 
     private void Awake()
     {
@@ -39,10 +43,14 @@ public class NetworkingManager : MonoBehaviour
     public async Task<bool> Connect()
     {
         client.On("instantiate", OnInstantiate);
-        client.On("update", OnUpdate);
+        client.On("update", OnUpdateDynamic);
         client.On("addStatic", OnAddStaticObject);
+        client.On("addDynamic", OnAddDynamicObject);
+        client.On("destroyDynamic", OnDestroyDynamicObject);
 
         await client.ConnectAsync();
+
+        Debug.Log(client.Id);
         Debug.Log("SocketIO::Connected");
 
         return true;
@@ -61,28 +69,51 @@ public class NetworkingManager : MonoBehaviour
 
     public void InstantiatePlayer(SocketIOResponse response)
     {
-        Debug.Log(response);
-        GameObject playerGO = Instantiate(playerPrefab, response.GetValue<Vector3>(2), response.GetValue<Quaternion>(3));
-        playerGO.GetComponent<CannonId>().id = response.GetValue<int>(1);
+        //'player', (0)
+        //gameObject.id, (1)
+        //gameObject.position, (2)
+        //gameObject.quaternion, (3)
+
+        //Debug.Log(response);
+
+        int id = response.GetValue<int>(1);
+        Vector3 position = response.GetValue<Vector3>(2);
+        Quaternion rotation = response.GetValue<Quaternion>(3);
+
+        GameObject playerGO = Instantiate(playerPrefab, position, rotation);
+        playerGO.GetComponent<CannonId>().id = id;
+
+        dynamicObjectsDictionary.Add(id, playerGO);
     }
 
-    private void OnUpdate(SocketIOResponse response)
+    private void OnUpdateDynamic(SocketIOResponse response)
     {
         actionQueue.Enqueue(() =>
         {
-            SendMessage("UpdatePlayer", response);
+            SendMessage("UpdateDynamic", response);
         });
     }
 
-    public void UpdatePlayer(SocketIOResponse response)
+    public void UpdateDynamic(SocketIOResponse response)
     {
-        CannonId cannonId = FindObjectOfType<CannonId>();
+        //gameObject.id, (0)
+        //gameObject.position, (1)
+        //gameObject.quaternion, (2)
+        //gameObject.velocity, (3)
 
-        if (!cannonId) return;
+        //Debug.Log(response);
 
-        Transform playerTransform = FindObjectOfType<CannonId>().transform;
-        playerTransform.position = response.GetValue<Vector3>(1);
-        playerTransform.rotation = response.GetValue<Quaternion>(2);
+        int id = response.GetValue<int>(0);
+
+        if (!dynamicObjectsDictionary.ContainsKey(id)) return;
+
+        Vector3 position = response.GetValue<Vector3>(1);
+        Quaternion rotation = response.GetValue<Quaternion>(2);
+
+        GameObject gameObject = dynamicObjectsDictionary[id];
+        Transform playerTransform = gameObject.GetComponent<Transform>();
+        playerTransform.position = position;
+        playerTransform.rotation = rotation;
     }
 
     private void OnAddStaticObject(SocketIOResponse response)
@@ -101,7 +132,7 @@ public class NetworkingManager : MonoBehaviour
         //gameObject.quaternion, (3)
         //gameObject.scale, (4)
 
-        Debug.Log(response);
+        //Debug.Log(response);
 
         Vector3 position = response.GetValue<Vector3>(2);
         Quaternion rotation = response.GetValue<Quaternion>(3);
@@ -111,6 +142,59 @@ public class NetworkingManager : MonoBehaviour
         cubeObject.position = position;
         cubeObject.rotation = rotation;
         cubeObject.localScale = scale;
+    }
+
+    private void OnAddDynamicObject(SocketIOResponse response)
+    {
+        actionQueue.Enqueue(() =>
+        {
+            SendMessage("AddDynamicObject", response);
+        });
+    }
+
+    public void AddDynamicObject(SocketIOResponse response)
+    {
+        //gameObject.shape, (0)
+        //gameObject.id, (1)
+        //gameObject.position, (2)
+        //gameObject.quaternion, (3)
+        //gameObject.velocity, (4)
+
+        //Debug.Log(response);
+
+        int id = response.GetValue<int>(1);
+        Vector3 position = response.GetValue<Vector3>(2);
+        Quaternion rotation = response.GetValue<Quaternion>(3);
+        Vector3 velocity = response.GetValue<Vector3>(4);
+
+        GameObject enemyGameObject = Instantiate(enemyPrefab, position, rotation);
+        enemyGameObject.GetComponent<CannonId>().id = id;
+
+        dynamicObjectsDictionary.Add(id, enemyGameObject);
+    }
+
+    private void OnDestroyDynamicObject(SocketIOResponse response)
+    {
+        actionQueue.Enqueue(() =>
+        {
+            SendMessage("DestroyDynamicObject", response);
+        });
+    }
+
+    public void DestroyDynamicObject(SocketIOResponse response)
+    {
+        //gameObject.id, (0)
+
+        //Debug.Log(response);
+
+        int id = response.GetValue<int>(0);
+
+        if (!dynamicObjectsDictionary.ContainsKey(id)) return;
+
+        GameObject gameObject = dynamicObjectsDictionary[id];
+
+        Destroy(gameObject);
+        dynamicObjectsDictionary.Remove(id);
     }
 
     private void OnAnyHandler(string eventName, SocketIOResponse response)
@@ -123,6 +207,8 @@ public class NetworkingManager : MonoBehaviour
         client.Off("instantiate");
         client.Off("update");
         client.Off("addStatic");
+        client.Off("addDynamic");
+        client.Off("destoryDynamic");
 
         await client.DisconnectAsync();
         client.Dispose();
