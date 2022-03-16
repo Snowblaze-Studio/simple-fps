@@ -34,7 +34,7 @@ public class NetworkingManager : MonoBehaviour
 
     private void Update()
     {
-        if (actionQueue.Count > 0)
+        while (actionQueue.Count > 0)
         {
             actionQueue.Dequeue()();
         }
@@ -50,7 +50,6 @@ public class NetworkingManager : MonoBehaviour
 
         await client.ConnectAsync();
 
-        Debug.Log(client.Id);
         Debug.Log("SocketIO::Connected");
 
         return true;
