@@ -47,6 +47,7 @@ public class NetworkingManager : MonoBehaviour
         client.On("addStatic", OnAddStaticObject);
         client.On("addDynamic", OnAddDynamicObject);
         client.On("destroyDynamic", OnDestroyDynamicObject);
+        client.On("hit", OnHit);
 
         await client.ConnectAsync();
 
@@ -72,15 +73,19 @@ public class NetworkingManager : MonoBehaviour
         //gameObject.id, (1)
         //gameObject.position, (2)
         //gameObject.quaternion, (3)
+        //gameObject.velocity, (4)
+        //hitPoints, (5)
 
         //Debug.Log(response);
 
         int id = response.GetValue<int>(1);
         Vector3 position = response.GetValue<Vector3>(2);
         Quaternion rotation = response.GetValue<Quaternion>(3);
+        int hitPoints = response.GetValue<int>(5);
 
         GameObject playerGO = Instantiate(playerPrefab, position, rotation);
         playerGO.GetComponent<CannonId>().id = id;
+        playerGO.GetComponent<Player>().SetHitPoints(hitPoints);
 
         dynamicObjectsDictionary.Add(id, playerGO);
     }
@@ -196,6 +201,34 @@ public class NetworkingManager : MonoBehaviour
         dynamicObjectsDictionary.Remove(id);
     }
 
+    private void OnHit(SocketIOResponse response)
+    {
+        actionQueue.Enqueue(() =>
+        {
+            SendMessage("Hit", response);
+        });
+    }
+
+    public void Hit(SocketIOResponse response)
+    {
+        //gameObject.id, (0)
+        //damage, (1)
+        //hitPointsLeft, (2)
+
+        //Debug.Log(response);
+
+        int id = response.GetValue<int>(0);
+        int damage = response.GetValue<int>(1);
+        int hitPointsLeft = response.GetValue<int>(2);
+
+        if (!dynamicObjectsDictionary.ContainsKey(id)) return;
+
+        GameObject playerGameObject = dynamicObjectsDictionary[id];
+        Player player = playerGameObject.GetComponent<Player>();
+        player.TakeHit(damage);
+        player.SetHitPoints(hitPointsLeft);
+    }
+
     private void OnAnyHandler(string eventName, SocketIOResponse response)
     {
         Debug.Log(eventName);
@@ -208,6 +241,7 @@ public class NetworkingManager : MonoBehaviour
         client.Off("addStatic");
         client.Off("addDynamic");
         client.Off("destoryDynamic");
+        client.Off("hit");
 
         await client.DisconnectAsync();
         client.Dispose();
